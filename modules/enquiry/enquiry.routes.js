@@ -1,0 +1,22 @@
+const express = require('express');
+const enquiryController = require('./enquiry.controller');
+const router = express.Router();
+const auth=require("./../../config/auth")
+router.post('/insertenquirydetails',auth.verifyToken,   enquiryController.insertEnquiry);
+router.get('/getallcourse',auth.verifyToken, enquiryController.getCourse);
+router.get('/getallgender',auth.verifyToken, enquiryController.getGender);
+router.get('/getenquirystatus',auth.verifyToken, enquiryController.getEnquiryStatus);
+router.get('/getallreferral_source',auth.verifyToken, enquiryController.getReferral_Source);
+router.get('/getcollegedetails',auth.verifyToken, enquiryController.getCollegeDetails);
+router.get('/getcompanydetails',auth.verifyToken, enquiryController.getCompanyDetails);
+router.post('/getallenquiry',auth.verifyToken, enquiryController.getAllEnquiry);
+router.post('/getenquirybyid',auth.verifyToken, enquiryController.getEnquiryById);
+router.post('/saveorupdatecoursedetails',auth.verifyToken, enquiryController.saveOrUpdateCourseDetails);
+router.post('/saveorupdatecollegedetails',auth.verifyToken, enquiryController.saveOrUpdateCollegeDetails);
+router.post('/saveorupdatecompanydetails',auth.verifyToken, enquiryController.saveOrUpdateCompanyDetails);
+router.post('/saveorupdatebatchdetails',auth.verifyToken, enquiryController.saveOrUpdateBatchDetails);
+router.post('/getcoursebyid',auth.verifyToken, enquiryController.getCourseByid);
+router.post('/getcompanydetailsbyid',auth.verifyToken, enquiryController.getCompanyDetailsByid);
+router.post('/getcollegedetailsbyid',auth.verifyToken, enquiryController.getCollegeDetailsByid);
+router.post('/getbatchdetailsbyid',auth.verifyToken, enquiryController.getBatchDetailsByid);
+module.exports = router;
