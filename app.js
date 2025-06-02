@@ -6,7 +6,7 @@ const cookieparser = require("cookie-parser");
 const cors = require("cors");
 var conn = require('./config/db');
 var fs = require('fs')
-const fileUpload = require('express-fileupload');
+const fileUpload = require('express-fileuploadsss');
 var corsOptions = {
     origin: ["*",],
     methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE'],

@@ -302,7 +302,7 @@ const getAllRegisterStatus = async (req, res, next) => {
 
 
 
-const getAllStudentDetails = (req, res, next) => {
+const getAllStudentDetails = async (req, res, next) => {
     var VALUES = [];
     var sql1 = "SELECT s.id AS student_id,s.student_name,DATE_FORMAT(s.dob,'%Y-%m-%d') as dob,g.gender,c.college,s.department,s.mobile,s.alter_no,s.email,s.address,y.`year`,s.sem,s.father_name,s.father_mobile,s.mother_name,s.mother_mobile,s.is_delete   FROM student_details s left JOIN gender g ON g.id=s.gender left JOIN college_details c ON s.college=c.id LEFT JOIN year_of_study y ON s.year_of_study=y.id where s.is_delete='0'";
 
@@ -402,7 +402,7 @@ const getAllStudentDetails = (req, res, next) => {
 
 
 
-const getStudentDetailById = (req, res, next) => {
+const getStudentDetailById = async (req, res, next) => {
     if (
         req.body.student_id == null ||
         req.body.student_id == "" ||
@@ -612,7 +612,7 @@ const insertRegistration1 = async (req, res, next) => {
 }
 
 
-const getAllRegisterDetails = (req, res, next) => {
+const getAllRegisterDetails = async (req, res, next) => {
     var sql1 = "SELECT r.id AS register_id,st.id AS student_id,st.student_name,b.id AS batch_id, b.batch_name,c.course,r.student_fees,r.actual_fees, r.discount_amount,r.discount_reason,r.date_of_joining,r.note,rs.id AS registration_status_id,rs.registration_status,r.placement_company,r.placement_notes  FROM  registrartion r LEFT JOIN student_details st ON r.student_id=st.id LEFT JOIN batch b ON r.batch_id=b.id LEFT JOIN course c ON b.course_id=c.id  LEFT JOIN registration_status rs ON r.registration_status_id=rs.id  WHERE r.is_delete='0'";
     var VALUES = [];
     if (req.body.student_name != null &&
@@ -700,7 +700,7 @@ const getAllRegisterDetails = (req, res, next) => {
 }
 
 
-const getRegisterById = (req, res, next) => {
+const getRegisterById = async (req, res, next) => {
     if (
         req.body.register_id == null ||
         req.body.register_id == "" ||
@@ -775,7 +775,7 @@ const getRegisterById = (req, res, next) => {
     }
 }
 
-const getPaymentDetailsByRegisterId = (req, res, next) => {
+const getPaymentDetailsByRegisterId = async (req, res, next) => {
     if (
         req.body.registration_id == null ||
         req.body.registration_id == "" ||
@@ -837,7 +837,7 @@ const getPaymentDetailsByRegisterId = (req, res, next) => {
                         data: [] // No payment details, so empty array
                     });
                 } else {
-                     return res.status(200).send({ // If student registration not found either
+                    return res.status(200).send({ // If student registration not found either
                         status: "200", // Or 404
                         message: "No Registration or Payment Data Found",
                         data: []
@@ -855,7 +855,7 @@ const getPaymentDetailsByRegisterId = (req, res, next) => {
     }
 }
 
-const getPaymentDetailsById = (req, res, next) => {
+const getPaymentDetailsById = async (req, res, next) => {
     if (
         req.body.payment_id == null ||
         req.body.payment_id == "" ||
@@ -1015,7 +1015,7 @@ const getAllPaymentDetails = async (req, res, next) => {
         });
     }
 };
-const getAllReportDetails = (req, res, next) => {
+const getAllReportDetails = async (req, res, next) => {
     var REG_COUNT_VALUES = [];
     var ENQ_COUNT_VALUES = [];
     var VALUES = [];
@@ -1128,7 +1128,7 @@ const getAllReportDetails = (req, res, next) => {
 };
 
 
-const getAllPaymentReportDetails = (req, res, next) => {
+const getAllPaymentReportDetails = async (req, res, next) => {
     var pay_count_query = "SELECT count(*) AS payment_count FROM fees_transaction_details  fst WHERE fst.is_delete='0'"
     var pay_get_query = "SELECT fst.id AS payment_id,fst.receipt_no,   fst.paid_amount,fst.gst,fst.fees,pt.payment_type,   s.student_name,c.course,b.batch_name,DATE_FORMAT(fst.payment_date,'%Y-%m-%d') AS payment_date  FROM fees_transaction_details fst LEFT JOIN registrartion r ON fst.registration_id=r.id LEFT JOIN student_details s ON r.student_id=s.id LEFT JOIN batch b ON b.id=r.batch_id  LEFT JOIN course c ON c.id=b.course_id LEFT JOIN payment_type pt ON pt.id=fst.payment_type where fst.is_delete='0'";
     var VALUES = [];
