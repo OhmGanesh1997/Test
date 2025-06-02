@@ -462,53 +462,90 @@ const updateEnquiry_Status = (req, res, next) => {
 
 const getAllEnquiry = (req, res, next) => {
     var VALUES = [];
-    var sql1 = "SELECT e.id AS enquiry_id,e.name,e.email, g.gender,e.mobile,e.alter_no,e.address,cl.college,ref.referral_source, DATE_FORMAT( e.enquiry_date,'%Y-%m-%d') as enquiry_date ,e.referred_by,DATE_FORMAT(e.dob,'%Y-%m-%d') as dob,   e.department,es.enquiry_status, GROUP_CONCAT(CONCAT('', CASE WHEN c.course != '' THEN  CONCAT(c.course) END)) AS course FROM enquiry e JOIN enquiry_course ec ON ec.enquiry_id=e.id JOIN  course c ON c.id=ec.course_id JOIN gender g ON g.id=e.gender JOIN college_details cl ON cl.id=e.college JOIN referral_sourc  ref ON ref.id=e.referral_source_id JOIN enquiry_status es ON es.id=e.enquiry_status  where e.is_delete='0'";
+    // Make the main SQL query more readable
+    var sql1 = `
+        SELECT
+            e.id AS enquiry_id,
+            e.name,
+            e.email,
+            g.gender,
+            e.mobile,
+            e.alter_no,
+            e.address,
+            cl.college,
+            ref.referral_source,
+            DATE_FORMAT(e.enquiry_date, '%Y-%m-%d') AS enquiry_date,
+            e.referred_by,
+            DATE_FORMAT(e.dob, '%Y-%m-%d') AS dob,
+            e.department,
+            es.enquiry_status,
+            JSON_ARRAYAGG(c.course) AS course
+        FROM enquiry e
+        JOIN enquiry_course ec ON ec.enquiry_id = e.id
+        JOIN course c ON c.id = ec.course_id
+        JOIN gender g ON g.id = e.gender
+        JOIN college_details cl ON cl.id = e.college
+        JOIN referral_source ref ON ref.id = e.referral_source_id
+        JOIN enquiry_status es ON es.id = e.enquiry_status
+        WHERE e.is_delete = '0'
+    `;
+
     if (req.body.name != null &&
         req.body.name != "" &&
         req.body.name != undefined) {
         VALUES.push('%' + req.body.name + '%')
-        sql1 = sql1 + " and e.name  like ?"
+        sql1 = sql1 + " AND e.name LIKE ?"
     }
     if (req.body.mobile != null &&
         req.body.mobile != "" &&
         req.body.mobile != undefined) {
         VALUES.push('%' + req.body.mobile + '%')
-        sql1 = sql1 + " and e.mobile  like ?"
+        sql1 = sql1 + " AND e.mobile LIKE ?"
     }
     if (req.body.enquiry_course != null &&
         req.body.enquiry_course != "" &&
         req.body.enquiry_course != undefined) {
         VALUES.push(req.body.enquiry_course)
-        sql1 = sql1 + " AND e.id IN (SELECT f.enquiry_id FROM enquiry_course f WHERE f.course_id=? )"
+        sql1 = sql1 + " AND e.id IN (SELECT f.enquiry_id FROM enquiry_course f WHERE f.course_id = ?)"
     }
     if (req.body.enquiry_status != null &&
         req.body.enquiry_status != "" &&
         req.body.enquiry_status != undefined) {
         VALUES.push(req.body.enquiry_status)
-        sql1 = sql1 + " and es.id=?"
+        sql1 = sql1 + " AND es.id = ?"
     }
-    if (req.body.last_id != null &&
-        req.body.last_id != "" &&
-        req.body.last_id != undefined) {
-        VALUES.push(req.body.last_id)
-        sql1 = sql1 + " and e.id<?"
-    }
-    if (req.body.first_id != null &&
-        req.body.first_id != "" &&
-        req.body.first_id != undefined) {
-        VALUES.push(req.body.first_id)
-        sql1 = sql1 + " and e.id>?"
-    }
-    sql1 = sql1 + " GROUP BY e.id "
 
-    if (req.body.page_records && req.body.page_records > 0 && req.body.page_records != 'undefined') {
-        sql1 += ' ORDER BY e.id desc LIMIT ' + req.body.page_records + '';
+    // Validate req.body.last_id
+    if (req.body.last_id != null && req.body.last_id != "" && req.body.last_id != undefined) {
+        const lastId = parseInt(req.body.last_id);
+        if (!isNaN(lastId)) {
+            VALUES.push(lastId);
+            sql1 = sql1 + " AND e.id < ?";
+        }
+    }
 
+    // Validate req.body.first_id
+    if (req.body.first_id != null && req.body.first_id != "" && req.body.first_id != undefined) {
+        const firstId = parseInt(req.body.first_id);
+        if (!isNaN(firstId)) {
+            VALUES.push(firstId);
+            sql1 = sql1 + " AND e.id > ?";
+        }
     }
-    else {
-        sql1 += 'ORDER BY e.id desc';
+
+    sql1 = sql1 + " GROUP BY e.id ";
+
+    // Validate req.body.page_records
+    let pageRecords = 10; // Default value
+    if (req.body.page_records != null && req.body.page_records != "" && req.body.page_records != undefined) {
+        const parsedPageRecords = parseInt(req.body.page_records);
+        if (!isNaN(parsedPageRecords) && parsedPageRecords > 0) {
+            pageRecords = parsedPageRecords;
+        }
     }
-    connection.query(sql1, VALUES, async function (err, result, fields) {
+    sql1 += ' ORDER BY e.id DESC LIMIT ' + pageRecords;
+
+    connection.query(sql1, VALUES, function (err, result, fields) { // Removed async
         if (err) {
             console.log("error ocurred", err);
             res.status(400).send({
@@ -518,11 +555,22 @@ const getAllEnquiry = (req, res, next) => {
         }
         else {
             if (result.length > 0) {
-                var j = [];
                 var response = [];
-                await result.forEach(async (vals) => {
-
-                    j = vals.course.split(",");
+                result.forEach((vals) => { // Removed await and async
+                    let courses = [];
+                    try {
+                        // Assuming vals.course is a JSON string like '["Math", "Science"]'
+                        // Or it might already be an array depending on the DB driver's handling of JSON_ARRAYAGG
+                        if (typeof vals.course === 'string') {
+                            courses = JSON.parse(vals.course);
+                        } else if (Array.isArray(vals.course)) {
+                            courses = vals.course;
+                        }
+                    } catch (parseError) {
+                        console.error("Error parsing courses JSON:", parseError, "Raw data:", vals.course);
+                        // Fallback or error handling if JSON.parse fails or it's not a string/array
+                        // For now, we'll leave courses as an empty array or handle as per requirements
+                    }
                     response.push({
                         "enquiry_id": vals.enquiry_id,
                         "name": vals.name,
@@ -538,17 +586,17 @@ const getAllEnquiry = (req, res, next) => {
                         "dob": vals.dob,
                         "department": vals.department,
                         "enquiry_status": vals.enquiry_status,
-                        "course": j
-                    })
-                    result.length == response.length && response.sort((a, b) => b.enquiry_id - a.enquiry_id) && res.send({
-                        status: "200",
-                        message: "Data Found",
-                        total_record: result.length,
-                        data: response
-
+                        "course": courses
                     });
-
-                })
+                });
+                // Client-side sorting removed, SQL ORDER BY e.id DESC handles this
+                // Moved res.send outside the loop
+                res.send({
+                    status: "200",
+                    message: "Data Found",
+                    total_record: response.length, // Use response.length as it's the final count
+                    data: response
+                });
             }
             else {
                 res.send({
@@ -575,8 +623,34 @@ const getEnquiryById = (req, res, next) => {
         });
     } else {
 
-        var sql1 = "SELECT e.id AS enquiry_id,e.name,e.email, e.gender,e.mobile,e.alter_no,e.address,e.college,e.referral_source_id,DATE_FORMAT( e.enquiry_date,'%Y-%m-%d') as enquiry_date,e.referred_by,DATE_FORMAT(e.dob,'%Y-%m-%d') as dob,e.department,e.enquiry_status, GROUP_CONCAT(CONCAT('', CASE WHEN ec.course_id != '' THEN  CONCAT(ec.course_id) END)) AS course FROM enquiry e JOIN enquiry_course ec ON ec.enquiry_id=e.id JOIN  course c ON c.id=ec.course_id JOIN gender g ON g.id=e.gender JOIN college_details cl ON cl.id=e.college JOIN referral_source  ref ON ref.id=e.referral_source_id JOIN enquiry_status es ON es.id=e.enquiry_status where e.id=? and e.is_delete='0' GROUP BY e.id";
-        connection.query(sql1, [req.body.enquiry_id], async function (err, result, fields) {
+        var sql1 = `
+            SELECT
+                e.id AS enquiry_id,
+                e.name,
+                e.email,
+                e.gender,
+                e.mobile,
+                e.alter_no,
+                e.address,
+                e.college,
+                e.referral_source_id,
+                DATE_FORMAT(e.enquiry_date, '%Y-%m-%d') AS enquiry_date,
+                e.referred_by,
+                DATE_FORMAT(e.dob, '%Y-%m-%d') AS dob,
+                e.department,
+                e.enquiry_status,
+                JSON_ARRAYAGG(c.course) AS course  // Changed to c.course and JSON_ARRAYAGG
+            FROM enquiry e
+            JOIN enquiry_course ec ON ec.enquiry_id = e.id
+            JOIN course c ON c.id = ec.course_id
+            JOIN gender g ON g.id = e.gender
+            JOIN college_details cl ON cl.id = e.college
+            JOIN referral_source ref ON ref.id = e.referral_source_id
+            JOIN enquiry_status es ON es.id = e.enquiry_status
+            WHERE e.id = ? AND e.is_delete = '0'
+            GROUP BY e.id
+        `;
+        connection.query(sql1, [req.body.enquiry_id], function (err, result, fields) { // Removed async
             if (err) {
                 console.log("error ocurred", err);
                 res.status(400).send({
@@ -586,11 +660,20 @@ const getEnquiryById = (req, res, next) => {
             }
             else {
                 if (result.length > 0) {
-                    var j = [];
                     var response = [];
-                    await result.forEach(async (vals) => {
-
-                        j = vals.course.split(",");
+                    result.forEach((vals) => { // Removed await and async
+                    let courses = [];
+                    try {
+                        // Assuming vals.course is a JSON string like '["Math", "Science"]'
+                        // Or it might already be an array depending on the DB driver's handling of JSON_ARRAYAGG
+                        if (typeof vals.course === 'string') {
+                            courses = JSON.parse(vals.course);
+                        } else if (Array.isArray(vals.course)) {
+                            courses = vals.course;
+                        }
+                    } catch (parseError) {
+                        console.error("Error parsing courses JSON for getEnquiryById:", parseError, "Raw data:", vals.course);
+                    }
                         response.push({
                             "enquiry_id": vals.enquiry_id,
                             "name": vals.name,
@@ -606,22 +689,23 @@ const getEnquiryById = (req, res, next) => {
                             "dob": vals.dob,
                             "department": vals.department,
                             "enquiry_status": vals.enquiry_status,
-                            "course": j
-                        })
-                        result.length == response.length && response.sort((a, b) => new Date(b.enquiry_date) - new Date(a.enquiry_date)) && res.send({
-                            status: "200",
-                            message: "Data Found",
-                            data: response
+                            "course": courses
                         });
-
-                    })
+                    });
+                    // Client-side sorting removed. For a "get by ID" query, sorting is usually not critical for a single record.
+                    // The SQL query already ensures we get the specific enquiry.
+                    // Moved res.send outside the loop
+                    res.send({
+                        status: "200",
+                        message: "Data Found",
+                        data: response
+                    });
                 }
                 else {
                     res.send({
                         status: "200",
                         message: "No Data Found"
                     });
-
                 }
             }
         });
