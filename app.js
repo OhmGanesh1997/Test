@@ -16,6 +16,7 @@ var api_prefix = '/api/v1'
 const app = express();
 
 app.use(express.json());
+app.use('/images', express.static(path.join(__dirname, 'images')));
 app.use(cookieparser());
 app.use(fileUpload());
 app.use(fileUpload({
