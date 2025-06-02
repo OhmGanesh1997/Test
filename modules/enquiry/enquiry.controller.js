@@ -462,7 +462,7 @@ const updateEnquiry_Status = (req, res, next) => {
 
 const getAllEnquiry = (req, res, next) => {
     var VALUES = [];
-    var sql1 = "SELECT e.id AS enquiry_id,e.name,e.email, g.gender,e.mobile,e.alter_no,e.address,cl.college,ref.referral_source, DATE_FORMAT( e.enquiry_date,'%Y-%m-%d') as enquiry_date ,e.referred_by,DATE_FORMAT(e.dob,'%Y-%m-%d') as dob,   e.department,es.enquiry_status, GROUP_CONCAT(CONCAT('', CASE WHEN c.course != '' THEN  CONCAT(c.course) END)) AS course FROM enquiry e JOIN enquiry_course ec ON ec.enquiry_id=e.id JOIN  course c ON c.id=ec.course_id JOIN gender g ON g.id=e.gender JOIN college_details cl ON cl.id=e.college JOIN referral_source  ref ON ref.id=e.referral_source_id JOIN enquiry_status es ON es.id=e.enquiry_status  where e.is_delete='0'";
+    var sql1 = "SELECT e.id AS enquiry_id,e.name,e.email, g.gender,e.mobile,e.alter_no,e.address,cl.college,ref.referral_source, DATE_FORMAT( e.enquiry_date,'%Y-%m-%d') as enquiry_date ,e.referred_by,DATE_FORMAT(e.dob,'%Y-%m-%d') as dob,   e.department,es.enquiry_status, GROUP_CONCAT(CONCAT('', CASE WHEN c.course != '' THEN  CONCAT(c.course) END)) AS course FROM enquiry e JOIN enquiry_course ec ON ec.enquiry_id=e.id JOIN  course c ON c.id=ec.course_id JOIN gender g ON g.id=e.gender JOIN college_details cl ON cl.id=e.college JOIN referral_sourc  ref ON ref.id=e.referral_source_id JOIN enquiry_status es ON es.id=e.enquiry_status  where e.is_delete='0'";
     if (req.body.name != null &&
         req.body.name != "" &&
         req.body.name != undefined) {
